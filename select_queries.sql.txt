@@ -1,0 +1,642 @@
+-- ============================================================
+--  WAREHOUSE MANAGEMENT SYSTEM — SELECT QUERIES (PostgreSQL)
+--  IT214 - Database Management System
+--  Dhirubhai Ambani University | Academic Year 2026
+--  Team: Arnav Pandita (202401079) | Krisha Bhuva (202401099) | Krishna Parmar (202401100)
+-- ============================================================
+
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q1. List all customers with their full name and email.
+-- ─────────────────────────────────────────────────────────────
+SELECT u.name, c.email
+FROM customer c
+JOIN "User" u ON c.user_id = u.user_id;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q2. List all products along with their category name
+--     and vendor email.
+-- ─────────────────────────────────────────────────────────────
+SELECT p.p_name, cat.cat_name, v.email AS vendor_email
+FROM product p
+JOIN category cat ON p.category_id = cat.category_id
+JOIN vendor v     ON p.vendor_id   = v.vendor_id;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q3. Find all orders placed by a specific customer
+--     (e.g., customer_id = 1) with order status and amount.
+-- ─────────────────────────────────────────────────────────────
+SELECT o.order_id, o.order_date, o.status, o.total_amount
+FROM orders o
+WHERE o.customer_id = 1
+ORDER BY o.order_date;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q4. List all products with stock below 50 across
+--     all warehouses.
+-- ─────────────────────────────────────────────────────────────
+SELECT p.p_name, w.w_name, i.stock
+FROM inventory i
+JOIN product   p ON i.product_id   = p.product_id
+JOIN warehouse w ON i.warehouse_id = w.warehouse_id
+WHERE i.stock < 50
+ORDER BY i.stock;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q5. Get the total revenue generated from all
+--     completed payments.
+-- ─────────────────────────────────────────────────────────────
+SELECT SUM(amount) AS total_revenue
+FROM payment
+WHERE status = 'completed';
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q6. Find the top 5 best-selling products by
+--     total quantity sold.
+-- ─────────────────────────────────────────────────────────────
+SELECT p.p_name, SUM(oi.quantity) AS total_sold
+FROM order_item oi
+JOIN product p ON oi.product_id = p.product_id
+GROUP BY p.p_name
+ORDER BY total_sold DESC
+LIMIT 5;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q7. List all orders with their delivery status
+--     and tracking number.
+-- ─────────────────────────────────────────────────────────────
+SELECT o.order_id, o.status AS order_status,
+       d.status AS delivery_status, d.tracking_no
+FROM orders o
+JOIN delivery d ON o.order_id = d.order_id;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q8. Find all vendors with a rating above 4.5.
+-- ─────────────────────────────────────────────────────────────
+SELECT vendor_id, email, rating
+FROM vendor
+WHERE rating > 4.5
+ORDER BY rating DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q9. Calculate the total number of orders per customer,
+--     sorted by most orders first.
+-- ─────────────────────────────────────────────────────────────
+SELECT u.name, COUNT(o.order_id) AS total_orders
+FROM orders o
+JOIN customer c ON o.customer_id = c.customer_id
+JOIN "User"   u ON c.user_id     = u.user_id
+GROUP BY u.name
+ORDER BY total_orders DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q10. List all products and the total stock available
+--      across all warehouses.
+-- ─────────────────────────────────────────────────────────────
+SELECT p.p_name, SUM(i.stock) AS total_stock
+FROM inventory i
+JOIN product p ON i.product_id = p.product_id
+GROUP BY p.p_name
+ORDER BY total_stock DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q11. List all return requests along with the reason
+--      and current status.
+-- ─────────────────────────────────────────────────────────────
+SELECT rr.return_id, o.order_id, rr.reason,
+       rr.status, rr.requested_on
+FROM return_request rr
+JOIN orders o ON rr.order_id = o.order_id
+ORDER BY rr.requested_on DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q12. Show all refunds that have been completed along
+--      with the refund amount and date.
+-- ─────────────────────────────────────────────────────────────
+SELECT rf.refund_id, rf.amount, rf.processed_on,
+       rr.reason
+FROM refund rf
+JOIN return_request rr ON rf.return_id = rr.return_id
+WHERE rf.status = 'completed';
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q13. Find the average rating of each product based
+--      on customer reviews.
+-- ─────────────────────────────────────────────────────────────
+SELECT p.p_name, ROUND(AVG(r.rating)::numeric, 2) AS avg_rating
+FROM review r
+JOIN product p ON r.product_id = p.product_id
+GROUP BY p.p_name
+ORDER BY avg_rating DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q14. List all coupons that are currently valid
+--      (as of today's date).
+-- ─────────────────────────────────────────────────────────────
+SELECT coupon_id, code, discount_pct, valid_from, valid_to
+FROM coupon
+WHERE valid_from <= CURRENT_DATE
+  AND valid_to   >= CURRENT_DATE;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q15. Find the delivery agent who has handled the
+--      most deliveries.
+-- ─────────────────────────────────────────────────────────────
+SELECT da.ag_name, COUNT(d.delivery_id) AS deliveries_handled
+FROM delivery d
+JOIN delivery_agent da ON d.agent_id = da.agent_id
+GROUP BY da.ag_name
+ORDER BY deliveries_handled DESC
+LIMIT 1;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q16. Show all orders where payment is still pending.
+-- ─────────────────────────────────────────────────────────────
+SELECT o.order_id, o.order_date, o.total_amount,
+       p.method AS payment_method
+FROM orders o
+JOIN payment p ON o.order_id = p.order_id
+WHERE p.status = 'pending';
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q17. List warehouses and the number of distinct products
+--      they stock.
+-- ─────────────────────────────────────────────────────────────
+SELECT w.w_name, w.region,
+       COUNT(DISTINCT i.product_id) AS product_variety
+FROM inventory i
+JOIN warehouse w ON i.warehouse_id = w.warehouse_id
+GROUP BY w.w_name, w.region
+ORDER BY product_variety DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q18. Find all sub-categories (categories that have a
+--      parent category).
+-- ─────────────────────────────────────────────────────────────
+SELECT c.cat_name AS sub_category,
+       p.cat_name AS parent_category
+FROM category c
+JOIN category p ON c.parent_cat_id = p.category_id;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q19. Find customers who have never placed an order.
+-- ─────────────────────────────────────────────────────────────
+SELECT u.name, c.email
+FROM customer c
+JOIN "User" u ON c.user_id = u.user_id
+WHERE c.customer_id NOT IN (
+    SELECT DISTINCT customer_id FROM orders
+);
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q20. Get the month-wise total revenue from
+--      completed payments.
+-- ─────────────────────────────────────────────────────────────
+SELECT TO_CHAR(paid_at, 'YYYY-MM') AS month,
+       SUM(amount) AS monthly_revenue
+FROM payment
+WHERE status = 'completed'
+GROUP BY month
+ORDER BY month;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q21. List all products whose current price is lower
+--      than their base price (i.e., discounted products).
+-- ─────────────────────────────────────────────────────────────
+SELECT p_name,
+       base_price,
+       current_price,
+       ROUND(((base_price - current_price) / base_price * 100)::numeric, 2)
+           AS discount_pct
+FROM product
+WHERE current_price < base_price
+ORDER BY discount_pct DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q22. Show the most recent review for each product.
+-- ─────────────────────────────────────────────────────────────
+SELECT DISTINCT ON (r.product_id)
+       p.p_name, r.rating, r.comment, r.reviewed_on
+FROM review r
+JOIN product p ON r.product_id = p.product_id
+ORDER BY r.product_id, r.reviewed_on DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q23. Find the total amount spent by each customer.
+-- ─────────────────────────────────────────────────────────────
+SELECT u.name, SUM(o.total_amount) AS total_spent
+FROM orders o
+JOIN customer c ON o.customer_id = c.customer_id
+JOIN "User"   u ON c.user_id     = u.user_id
+WHERE o.status != 'cancelled'
+GROUP BY u.name
+ORDER BY total_spent DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q24. List all deliveries that were late
+--      (actual_time > est_time).
+-- ─────────────────────────────────────────────────────────────
+SELECT d.tracking_no, d.est_time, d.actual_time,
+       da.ag_name
+FROM delivery d
+JOIN delivery_agent da ON d.agent_id = da.agent_id
+WHERE d.actual_time > d.est_time;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q25. Count the number of products per top-level category.
+-- ─────────────────────────────────────────────────────────────
+SELECT parent.cat_name AS top_category,
+       COUNT(p.product_id) AS product_count
+FROM product p
+JOIN category child  ON p.category_id    = child.category_id
+JOIN category parent ON child.parent_cat_id = parent.category_id
+GROUP BY parent.cat_name
+
+UNION ALL
+
+SELECT c.cat_name, COUNT(p.product_id)
+FROM product p
+JOIN category c ON p.category_id = c.category_id
+WHERE c.parent_cat_id IS NULL
+  AND c.category_id NOT IN (
+      SELECT DISTINCT parent_cat_id FROM category
+      WHERE parent_cat_id IS NOT NULL
+  )
+GROUP BY c.cat_name
+ORDER BY product_count DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q26. List all orders along with the number of items
+--      and total quantity ordered.
+-- ─────────────────────────────────────────────────────────────
+SELECT o.order_id, o.order_date,
+       COUNT(oi.item_no)     AS line_items,
+       SUM(oi.quantity)      AS total_quantity
+FROM orders o
+JOIN order_item oi ON o.order_id = oi.order_id
+GROUP BY o.order_id, o.order_date
+ORDER BY o.order_id;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q27. Find products that have no stock in any warehouse.
+-- ─────────────────────────────────────────────────────────────
+SELECT p.p_name
+FROM product p
+WHERE p.product_id NOT IN (
+    SELECT DISTINCT product_id FROM inventory WHERE stock > 0
+);
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q28. Show all approved return requests with the
+--      corresponding refund status.
+-- ─────────────────────────────────────────────────────────────
+SELECT rr.return_id, rr.reason, rr.requested_on,
+       rf.amount, rf.status AS refund_status
+FROM return_request rr
+LEFT JOIN refund rf ON rr.return_id = rf.return_id
+WHERE rr.status = 'approved';
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q29. List all delivery agents operating in the
+--      'North' region along with their vehicle type.
+-- ─────────────────────────────────────────────────────────────
+SELECT ag_name, phone, vehicle_type
+FROM delivery_agent
+WHERE region = 'North';
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q30. Find the highest-rated product in each category.
+-- ─────────────────────────────────────────────────────────────
+SELECT cat.cat_name, p.p_name,
+       ROUND(AVG(r.rating)::numeric, 2) AS avg_rating
+FROM review r
+JOIN product  p   ON r.product_id   = p.product_id
+JOIN category cat ON p.category_id  = cat.category_id
+GROUP BY cat.cat_name, p.p_name
+HAVING AVG(r.rating) = (
+    SELECT MAX(avg_sub)
+    FROM (
+        SELECT AVG(r2.rating) AS avg_sub
+        FROM review r2
+        JOIN product p2 ON r2.product_id = p2.product_id
+        WHERE p2.category_id = p.category_id
+        GROUP BY r2.product_id
+    ) AS sub
+)
+ORDER BY cat.cat_name;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q31. Find the warehouse with the highest total
+--      stock value (stock × current_price).
+-- ─────────────────────────────────────────────────────────────
+SELECT w.w_name,
+       SUM(i.stock * p.current_price) AS total_stock_value
+FROM inventory i
+JOIN warehouse w ON i.warehouse_id = w.warehouse_id
+JOIN product   p ON i.product_id   = p.product_id
+GROUP BY w.w_name
+ORDER BY total_stock_value DESC
+LIMIT 1;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q32. List customers who have written more than one review.
+-- ─────────────────────────────────────────────────────────────
+SELECT u.name, COUNT(r.review_id) AS review_count
+FROM review r
+JOIN customer c ON r.customer_id = c.customer_id
+JOIN "User"   u ON c.user_id     = u.user_id
+GROUP BY u.name
+HAVING COUNT(r.review_id) > 1
+ORDER BY review_count DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q33. Show all active campaigns (running today).
+-- ─────────────────────────────────────────────────────────────
+SELECT campaign_id, c_name, start_date, end_date, target_segment
+FROM campaign
+WHERE start_date <= CURRENT_DATE
+  AND end_date   >= CURRENT_DATE;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q34. Find the payment method most used by customers.
+-- ─────────────────────────────────────────────────────────────
+SELECT method, COUNT(*) AS usage_count
+FROM payment
+GROUP BY method
+ORDER BY usage_count DESC
+LIMIT 1;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q35. List all products supplied by vendors with
+--      a rating of 4.0 or above.
+-- ─────────────────────────────────────────────────────────────
+SELECT p.p_name, v.email AS vendor_email, v.rating
+FROM product p
+JOIN vendor v ON p.vendor_id = v.vendor_id
+WHERE v.rating >= 4.0
+ORDER BY v.rating DESC;
+
+
+
+
+
+
+
+
+
+
+
+
+-- ============================================================
+--  WAREHOUSE MANAGEMENT SYSTEM — REAL-LIFE QUERIES
+-- ============================================================
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q1. RESTOCK ALERT
+--     Which products need urgent restocking?
+--     (total stock across all warehouses is less than 100)
+-- ─────────────────────────────────────────────────────────────
+SELECT p.p_name,
+       cat.cat_name,
+       SUM(i.stock)        AS total_stock,
+       p.current_price,
+       COUNT(i.warehouse_id) AS stocked_in_warehouses
+FROM inventory i
+JOIN product  p   ON i.product_id   = p.product_id
+JOIN category cat ON p.category_id  = cat.category_id
+GROUP BY p.p_name, cat.cat_name, p.current_price
+HAVING SUM(i.stock) < 100
+ORDER BY total_stock ASC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q2. CUSTOMER LIFETIME VALUE (CLV)
+--     Rank customers by total money spent,
+--     excluding cancelled and returned orders.
+-- ─────────────────────────────────────────────────────────────
+SELECT u.name,
+       c.email,
+       COUNT(o.order_id)       AS total_orders,
+       SUM(o.total_amount)     AS lifetime_value,
+       RANK() OVER (ORDER BY SUM(o.total_amount) DESC) AS clv_rank
+FROM orders o
+JOIN customer c ON o.customer_id = c.customer_id
+JOIN "User"   u ON c.user_id     = u.user_id
+WHERE o.status NOT IN ('cancelled', 'returned')
+GROUP BY u.name, c.email
+ORDER BY lifetime_value DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q3. VENDOR PERFORMANCE REPORT
+--     For each vendor — how many products they supply,
+--     total stock held, and their average product rating.
+-- ─────────────────────────────────────────────────────────────
+SELECT v.email              AS vendor,
+       v.rating             AS vendor_rating,
+       COUNT(DISTINCT p.product_id)         AS products_supplied,
+       COALESCE(SUM(i.stock), 0)            AS total_stock_held,
+       ROUND(AVG(r.rating)::numeric, 2)     AS avg_product_rating
+FROM vendor v
+JOIN product p  ON p.vendor_id   = v.vendor_id
+LEFT JOIN inventory i ON i.product_id = p.product_id
+LEFT JOIN review    r ON r.product_id = p.product_id
+GROUP BY v.email, v.rating
+ORDER BY avg_product_rating DESC NULLS LAST;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q4. DELIVERY PERFORMANCE BY AGENT
+--     For each agent — total deliveries, on-time vs late,
+--     and on-time percentage.
+-- ─────────────────────────────────────────────────────────────
+SELECT da.ag_name,
+       da.vehicle_type,
+       da.region,
+       COUNT(d.delivery_id)                                   AS total_deliveries,
+       SUM(CASE WHEN d.actual_time <= d.est_time THEN 1 ELSE 0 END) AS on_time,
+       SUM(CASE WHEN d.actual_time > d.est_time  THEN 1 ELSE 0 END) AS late,
+       ROUND(
+           SUM(CASE WHEN d.actual_time <= d.est_time THEN 1 ELSE 0 END)::numeric
+           / NULLIF(COUNT(d.delivery_id), 0) * 100, 2
+       ) AS on_time_pct
+FROM delivery d
+JOIN delivery_agent da ON d.agent_id = da.agent_id
+WHERE d.actual_time IS NOT NULL
+GROUP BY da.ag_name, da.vehicle_type, da.region
+ORDER BY on_time_pct DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q5. RETURN RATE PER PRODUCT
+--     Which products are being returned the most?
+--     (helps identify quality issues)
+-- ─────────────────────────────────────────────────────────────
+SELECT p.p_name,
+       COUNT(DISTINCT oi.order_id)  AS times_ordered,
+       COUNT(DISTINCT rr.return_id) AS times_returned,
+       ROUND(
+           COUNT(DISTINCT rr.return_id)::numeric
+           / NULLIF(COUNT(DISTINCT oi.order_id), 0) * 100, 2
+       ) AS return_rate_pct
+FROM product p
+JOIN order_item    oi ON oi.product_id = p.product_id
+LEFT JOIN return_request rr ON rr.order_id = oi.order_id
+GROUP BY p.p_name
+ORDER BY return_rate_pct DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q6. MONTHLY SALES TREND WITH RUNNING TOTAL
+--     Month-wise revenue with a cumulative running total
+--     (useful for finance dashboards).
+-- ─────────────────────────────────────────────────────────────
+SELECT TO_CHAR(paid_at, 'YYYY-MM')        AS month,
+       SUM(amount)                         AS monthly_revenue,
+       SUM(SUM(amount)) OVER (
+           ORDER BY TO_CHAR(paid_at, 'YYYY-MM')
+       )                                   AS running_total
+FROM payment
+WHERE status = 'completed'
+GROUP BY TO_CHAR(paid_at, 'YYYY-MM')
+ORDER BY month;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q7. WAREHOUSE UTILISATION REPORT
+--     Total stock value stored in each warehouse
+--     and what % of the overall stock value it holds.
+-- ─────────────────────────────────────────────────────────────
+SELECT w.w_name,
+       w.region,
+       SUM(i.stock * p.current_price)  AS stock_value,
+       ROUND(
+           SUM(i.stock * p.current_price) * 100.0
+           / SUM(SUM(i.stock * p.current_price)) OVER (), 2
+       ) AS pct_of_total
+FROM inventory i
+JOIN warehouse w ON i.warehouse_id = w.warehouse_id
+JOIN product   p ON i.product_id   = p.product_id
+GROUP BY w.w_name, w.region
+ORDER BY stock_value DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q8. CUSTOMERS AT RISK OF CHURN
+--     Customers who placed at least one order but have
+--     NOT ordered in the last 60 days.
+-- ─────────────────────────────────────────────────────────────
+SELECT u.name,
+       c.email,
+       MAX(o.order_date)                        AS last_order_date,
+       CURRENT_DATE - MAX(o.order_date)         AS days_since_last_order
+FROM orders o
+JOIN customer c ON o.customer_id = c.customer_id
+JOIN "User"   u ON c.user_id     = u.user_id
+GROUP BY u.name, c.email
+HAVING MAX(o.order_date) < CURRENT_DATE - INTERVAL '60 days'
+ORDER BY days_since_last_order DESC;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q9. REFUND IMPACT ANALYSIS
+--     How much revenue was lost to refunds per month,
+--     and what percentage of that month's revenue it represents.
+-- ─────────────────────────────────────────────────────────────
+WITH monthly_revenue AS (
+    SELECT TO_CHAR(paid_at, 'YYYY-MM') AS month,
+           SUM(amount) AS revenue
+    FROM payment
+    WHERE status = 'completed'
+    GROUP BY TO_CHAR(paid_at, 'YYYY-MM')
+),
+monthly_refunds AS (
+    SELECT TO_CHAR(rf.processed_on, 'YYYY-MM') AS month,
+           SUM(rf.amount) AS refunded
+    FROM refund rf
+    WHERE rf.status = 'completed'
+    GROUP BY TO_CHAR(rf.processed_on, 'YYYY-MM')
+)
+SELECT mr.month,
+       mr.revenue,
+       COALESCE(mrf.refunded, 0)      AS total_refunded,
+       ROUND(
+           COALESCE(mrf.refunded, 0) * 100.0
+           / NULLIF(mr.revenue, 0), 2
+       )                              AS refund_pct
+FROM monthly_revenue mr
+LEFT JOIN monthly_refunds mrf ON mr.month = mrf.month
+ORDER BY mr.month;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- Q10. TOP PRODUCT PER CATEGORY BY REVENUE
+--      For each category, find the single product that
+--      generated the highest total revenue.
+-- ─────────────────────────────────────────────────────────────
+WITH product_revenue AS (
+    SELECT p.product_id,
+           p.p_name,
+           p.category_id,
+           SUM(oi.quantity * oi.unit_price) AS revenue
+    FROM order_item oi
+    JOIN product p ON oi.product_id = p.product_id
+    GROUP BY p.product_id, p.p_name, p.category_id
+),
+ranked AS (
+    SELECT pr.*,
+           cat.cat_name,
+           RANK() OVER (
+               PARTITION BY pr.category_id
+               ORDER BY pr.revenue DESC
+           ) AS rnk
+    FROM product_revenue pr
+    JOIN category cat ON pr.category_id = cat.category_id
+)
+SELECT cat_name AS category,
+       p_name   AS top_product,
+       revenue  AS total_revenue
+FROM ranked
+WHERE rnk = 1
+ORDER BY total_revenue DESC;
+
+
+-- ============================================================
+-- END OF SELECT QUERIES
+-- ============================================================
