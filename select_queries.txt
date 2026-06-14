@@ -2,7 +2,7 @@
 --  WAREHOUSE MANAGEMENT SYSTEM — SELECT QUERIES (PostgreSQL)
 --  IT214 - Database Management System
 --  Dhirubhai Ambani University | Academic Year 2026
---  Team: Arnav Pandita (202401079) | Krisha Bhuva (202401099) | Krishna Parmar (202401100)
+--  Team: Krishna Parmar (202401100) | Arnav Pandita (202401079) | Krisha Bhuva (202401099) 
 -- ============================================================
 
 
